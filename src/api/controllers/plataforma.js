@@ -13,6 +13,9 @@ const getPlataformaById = async (req, res, next) => {
   try {
     const { id } = req.params
     const plataforma = await Plataforma.findById(id).populate('series')
+    if (!plataforma) {
+      return res.status(404).json({ message: 'Plataforma no encontrada' })
+    }
     return res.status(200).json(plataforma)
   } catch (error) {
     return res.status(404).json('Error en la solicitud')
@@ -33,17 +36,21 @@ const putPlataforma = async (req, res, next) => {
   try {
     const { id } = req.params
     const oldplataforma = await Plataforma.findById(id)
-    const newplataforma = new Plataforma(req.body)
-    newplataforma._id = oldplataforma._id
-    newplataforma.series = [...oldplataforma.series, ...req.body.series]
-    const updateplataforma = await Plataforma.findByIdAndUpdate(
+
+    if (!oldplataforma) {
+      return res.status(404).json({ message: 'Plataforma no encontrada' })
+    }
+    const combinedSeries = [
+      ...new Set([...oldplataforma.series, ...req.body.series])
+    ]
+
+    const updatedPlataforma = await Plataforma.findByIdAndUpdate(
       id,
-      newplataforma,
-      {
-        new: true
-      }
+      { ...req.body, series: combinedSeries },
+      { new: true }
     )
-    return res.status(200).json(updateplataforma)
+
+    return res.status(200).json(updatedPlataforma)
   } catch (error) {
     return res.status(404).json('Error en la solicitud')
   }
